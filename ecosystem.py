@@ -2,6 +2,7 @@ from scipy.signal import correlate2d
 from Cell2D import Cell2D, draw_array
 import numpy as np
 import matplotlib.pyplot as plt
+from numpy import random
 
 from plant import Plant
 
@@ -9,7 +10,7 @@ from plant import Plant
 class Ecosystem(Cell2D):
     """Represents a given ecoystem."""
 
-    def __init__(self, n: int, **params: dict):
+    def __init__(self, n: int, params: dict):
         """Initializes the attributes.
         n: number of rows and columns
         params: dictionary of parameters
@@ -17,73 +18,79 @@ class Ecosystem(Cell2D):
 
         self.n = n
         self.params = params
-        self.agents = {}
+        self.agents = list[Plant]
+        self.occupied = list[tuple]
 
         self.array = np.array(n,n)
 
     def make_agents(self, agents: dict[Plant, str]):
-        """Populate the ecoystem with flora."""
+        """
+        Populate the ecoystem with flora.
+        This function takes given, specified
+        plants populates the ecosystem with them. 
+        """
         for current_agent in agents:
-            self.agents.update({current_agent.loc: current_agent})
+            self.add_plant(current_agent)
 
-    def add_agent(self, agent: Plant):
-        """Add a given agent to the ecosystem"""
-        self.agents.update({agent.loc: agent})
-        return 0
+    def add_plant(self, agent: Plant):
+        """Add a given plant to the ecosystem"""
+        self.agents.append(agent)
+        self.occupied.append(agent.loc)
+    
+    def remove_plant(self, agent: Plant):
+        """ Remove a plant from the ecosystem"""
+        self.agents.pop(agent)
+        self.occupied.pop(agent.loc)
 
-    def reproduce(self):
-        """Go throug all plants, and check if any can reproduce"""
-        return 0
+
+    def get_empty_cells(self, agent: Plant):
+        # Define the range for rows and columns, ensuring the indices don't go out of bounds
+        loc_row = agent.loc[0]
+        loc_column = agent.loc[1]
+
+        row_start = max(0, loc_row-1)
+        row_end = min(self.array.shape[0], loc_row+2)
+        
+        col_start = max(0, loc_column-1)
+        col_end = min(self.array.shape[1], loc_column+2)
+        
+        # Collect the neighboring coordinates
+        neighbors = []
+        for row in range(row_start, row_end):
+            for col in range(col_start, col_end):
+                # Exclude the current plant itself
+                if row == loc_row and col == loc_column:
+                    continue
+                for loc in self.occupied:
+                    if loc == (row,loc):
+                    # We have a neighbour!
+                        neighbors.append(loc)
+        return neighbors
 
     def step(self):
         """Executes one time step."""
-        replace = self.params.get('replace', False)
 
         # loop through the agents in random order
-        random_order = np.random.permutation(self.agents)
+        random_order = np.random.permutation(self.agents.items())
         for agent in random_order:
-
-            # mark the current cell unoccupied
-            self.occupied.remove(agent.loc)
 
             # execute one step that updates the agent's new location and sugar level
             agent.step(self)
 
-            # if the agent is dead, remove from the list
-            if agent.is_starving() or agent.is_old():
-                self.agents.remove(agent)
-                if replace:
-                    self.add_agent()
-            else:
-                # otherwise mark its cell occupied
-                self.occupied.add(agent.loc)
+            # If the agent plant is too old, remove from the ecosystem
+            if agent.is_old():
+                self.remove_plant(agent)
 
-        # update the time series
-        self.agent_count_seq.append(len(self.agents))
+            if agent.can_reproduce():
+                # Calculate where it can reproduce
+                empty_cells = self.get_empty_cells(agent)
+                # Generate a plant next to the current one
+                offspring = agent.reproduce(self)
+                """ TODO: determine whether it should grow more than once at a time"""
+                for new_plant in offspring:
+                    self.add_plant(new_plant)
 
-        # grow back some sugar
-        self.grow()
         return len(self.agents)
-
-    def add_agent(self):
-        """Generates a new random agent.
-
-        returns: new Agent
-        """
-        new_agent = Plant(self.random_loc(), self.params)
-        self.agents.append(new_agent)
-        self.occupied.add(new_agent.loc)
-        return new_agent
-
-    def random_loc(self):
-        """Choose a random unoccupied cell.
-
-        returns: tuple coordinates
-        """
-        while True:
-            loc = tuple(np.random.randint(self.n, size=2))
-            if loc not in self.occupied:
-                return loc
 
     def draw(self):
         """Draws the cells."""
