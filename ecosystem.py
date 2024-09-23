@@ -82,7 +82,7 @@ class Ecosystem(Cell2D):
             if agent.is_old():
                 self.remove_plant(agent)
 
-            if agent.can_reproduce():
+            else:
                 # Calculate where it can reproduce
                 empty_cells = self.get_empty_cells(agent)
                 # Generate a plant next to the current one
@@ -95,12 +95,25 @@ class Ecosystem(Cell2D):
         return len(self.agents)
 
     def draw(self):
-        """Draws the cells."""
-        draw_array(self.array, cmap='YlOrRd', vmax=9, origin='lower')
+        """Draws the ecosystem as a cellular automata grid."""
+        # Clear the previous figure
+        plt.clf()
 
-        # Draw the plants
-        xs, ys = self.get_coords()
-        self.points = plt.plot(xs, ys, '.', color='red')[0]
+        # Update the array based on the positions of the agents
+        for agent in self.agents:
+            self.array[agent.loc] = 1  # You can use different values for different states or types
+
+        # Draw the ecosystem grid
+        plt.imshow(self.array, cmap='YlOrRd', vmin=0, vmax=1, origin='lower')
+        plt.gca().axes.get_xaxis().set_visible(False)  # Hide x-axis
+        plt.gca().axes.get_yaxis().set_visible(False)   
+        plt.title('Ecosystem Cellular Automata Visualization')
+        plt.show()
+
+        # Reset the array to zero for the next step
+        self.array.fill(0)
+
+    
 
     def get_coords(self):
         """Gets the coordinates of the agents.

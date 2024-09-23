@@ -22,8 +22,7 @@ location = (4,4)
 new_plant = Plant(location, plant_params)
 
 params = {"plants": [new_plant]}
-print(params.get("plants")[0].type)
 # Example output to show its properties
-desert = Ecosystem(5, params)
+desert = Ecosystem(50, params)
 
 desert.animate(10)
