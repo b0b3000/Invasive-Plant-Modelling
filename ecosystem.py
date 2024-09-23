@@ -1,135 +1,104 @@
-from scipy.signal import correlate2d
 from Cell2D import Cell2D, draw_array
 import numpy as np
 import matplotlib.pyplot as plt
+from numpy import random
 
 from plant import Plant
 
-def make_locs(n, m):
-    """Makes array where each row is an index in an `n` by `m` grid.
-
-    n: int number of rows
-    m: int number of cols
-
-    returns: NumPy array
-    """
-    t = [(i, j) for i in range(n) for j in range(m)]
-    return np.array(t)
 
 class Ecosystem(Cell2D):
-    """Represents an ecosystem."""
+    """Represents a given ecoystem."""
 
-    def __init__(self, n: int, **params: dict):
+    def __init__(self, n: int, params: dict):
         """Initializes the attributes.
-
         n: number of rows and columns
         params: dictionary of parameters
         """
+
         self.n = n
         self.params = params
+        self.agents = list(params.get("plants"))
+        self.occupied = [agent.loc for agent in self.agents]
 
-        # make the capacity array
-        self.capacity = self.make_capacity()
+        self.array = np.zeros((n,n))
 
-        # initially all cells are at capacity
-        self.array = self.capacity.copy()
-
-        # make the agents
-        self.make_agents()
-
-    def make_capacity(self):
-        """Makes the capacity array."""
-
-        return 0
-
-    def make_agents(self):
-        """Makes the agents."""
-
-        # determine where the agents start and generate locations
-        n, m = self.params.get('starting_box', self.array.shape)
-        locs = make_locs(n, m) # return the locations of each cell in a grid by indices of row and column
-        np.random.shuffle(locs)
-
-        # make the agents
-        num_agents = self.params.get('num_agents', 400)
-        assert(num_agents <= len(locs))
-        # make a list of agents, with each has its own associated attributes: sugar, vision, metabolism etc.
-        self.agents = [Plant(locs[i], self.params)
-                       for i in range(num_agents)]
-
-        # keep track of which cells are occupied
-        self.occupied = set(agent.loc for agent in self.agents)
-
-    def grow(self):
-        """Adds sugar to all cells and caps them by capacity."""
-        grow_rate = self.params.get('grow_rate', 1)
-        self.array = np.minimum(self.array + grow_rate, self.capacity) # the total sugar in each cell is bounded by its capacity
-
-    def look_and_move(self, center, vision):
-        """Finds the visible cell with the most sugar.
-
-        center: tuple, coordinates of the center cell
-        vision: int, maximum visible distance
-
-        returns: tuple, coordinates of best cell
+    def make_agents(self, agents: dict[Plant, str]):
         """
-        # find all visible cells
+        Populate the ecoystem with flora.
+        This function takes given, specified
+        plants populates the ecosystem with them. 
+        """
+        for current_agent in agents:
+            self.add_plant(current_agent)
+
+    def add_plant(self, agent: Plant):
+        """Add a given plant to the ecosystem"""
+        self.agents.append(agent)
+        self.occupied.append(agent.loc)
+    
+    def remove_plant(self, agent: Plant):
+        """ Remove a plant from the ecosystem"""
+        self.agents.remove(agent)
+        self.occupied.remove(agent.loc)
+
+    def get_empty_cells(self, agent: Plant):
+        # Define the range for rows and columns, ensuring the indices don't go out of bounds
+        loc_row = agent.loc[0]
+        loc_column = agent.loc[1]
+
+        row_start = max(0, loc_row-1)
+        row_end = min(self.array.shape[0], loc_row+2)
+        
+        col_start = max(0, loc_column-1)
+        col_end = min(self.array.shape[1], loc_column+2)
+        
+        # Collect the neighboring coordinates
+        neighbors = []
+        print(f"Occupied: \n {self.occupied}")
+        for row in range(row_start, row_end):
+            for col in range(col_start, col_end):
+                # Exclude the current plant itself
+                if row == loc_row and col == loc_column:
+                    continue
+                # Check if coords are in occup
+                if (row,col) not in self.occupied:
+                    # We have an empty cell!
+                        neighbors.append((row,col))
+        print(f'Empty cell indexes are \n {neighbors}')
+        return neighbors
 
     def step(self):
         """Executes one time step."""
-        replace = self.params.get('replace', False)
 
         # loop through the agents in random order
         random_order = np.random.permutation(self.agents)
         for agent in random_order:
 
-            # mark the current cell unoccupied
-            self.occupied.remove(agent.loc)
-
             # execute one step that updates the agent's new location and sugar level
-            agent.step(self)
+            agent.step()
 
-            # if the agent is dead, remove from the list
-            if agent.is_starving() or agent.is_old():
-                self.agents.remove(agent)
-                if replace:
-                    self.add_agent()
-            else:
-                # otherwise mark its cell occupied
-                self.occupied.add(agent.loc)
 
-        # update the time series
-        self.agent_count_seq.append(len(self.agents))
+            # If the agent plant is too old, remove from the ecosystem
+            if agent.is_old():
+                self.remove_plant(agent)
 
-        # grow back some sugar
-        self.grow()
+            if agent.can_reproduce():
+                # Calculate where it can reproduce
+                empty_cells = self.get_empty_cells(agent)
+                # Generate a plant next to the current one
+                offspring = agent.reproduce(self)
+                if len(offspring) != 0:
+                    """ TODO: determine whether it should grow more than once at a time"""
+                    for new_plant in offspring:
+                        self.add_plant(new_plant)
+
         return len(self.agents)
-
-    def add_agent(self):
-        """Generates a new random agent.
-
-        returns: new Agent
-        """
-        new_agent = Plant(self.random_loc(), self.params)
-        self.agents.append(new_agent)
-        self.occupied.add(new_agent.loc)
-        return new_agent
-
-    def random_loc(self):
-        """Choose a random unoccupied cell.
-
-        returns: tuple coordinates
-        """
-        while True:
-            loc = tuple(np.random.randint(self.n, size=2))
-            if loc not in self.occupied:
-                return loc
 
     def draw(self):
         """Draws the cells."""
         draw_array(self.array, cmap='YlOrRd', vmax=9, origin='lower')
 
-        # draw the agents
+        # Draw the plants
         xs, ys = self.get_coords()
         self.points = plt.plot(xs, ys, '.', color='red')[0]
 
@@ -140,8 +109,7 @@ class Ecosystem(Cell2D):
 
         returns: tuple of sequences, (xs, ys)
         """
-        agents = self.agents
-        rows, cols = np.transpose([agent.loc for agent in agents])
+        rows, cols = np.transpose([agent.loc for agent in self.agents])
         xs = cols + 0.5
         ys = rows + 0.5
         return xs, ys
