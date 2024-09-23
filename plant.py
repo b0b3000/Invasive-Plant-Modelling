@@ -30,11 +30,6 @@ class Plant:
         self.growth_rate = np.random.uniform(params["min_growth_rate"], params["max_growth_rate"])
         self.reproduction_rate = np.random.uniform(params["min_reproduction_rate"], params["max_reproduction_rate"])
 
-
-    def can_reproduce(self):
-        # return true or false if reproduce is possible
-        return True
-
     def step(self):
         #PLACEHOLDER
         self.age += 1
@@ -45,10 +40,6 @@ class Plant:
     def reproduce(self, ecosystem):
         # return a list of plants of the same type to be input into the eco
         empty_neighbours = ecosystem.get_empty_cells(self)
-        print(ecosystem.array)
-        print(ecosystem.occupied)
-        print(f"Getting empty neighbours for {self.loc[0]}:{self.loc[1]}...")
-        print(empty_neighbours)
         if(len(empty_neighbours) == 0):
             return []
         offspring = []
