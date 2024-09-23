@@ -1,32 +1,29 @@
-import numpy as np
+from ecosystem import Ecosystem
 from plant import Plant
 
-def get_neighbor_coordinates(arr, i, j):
-    # Define the range for rows and columns, ensuring the indices don't go out of bounds
-    row_start = max(0, i-1)
-    row_end = min(arr.shape[0], i+2)
-    col_start = max(0, j-1)
-    col_end = min(arr.shape[1], j+2)
-    
-    # Collect the neighboring coordinates
-    neighbors = []
-    for row in range(row_start, row_end):
-        for col in range(col_start, col_end):
-            # Exclude the center cell (i, j)
-            if row == i and col == j:
-                continue
-            neighbors.append((row, col))
-    
-    return neighbors
 
-# Example 2D array
-arr = np.array([[1, 2, 3],
-                [4, 5, 6],
-                [7, 8, 9]])
+# Example parameters for the plant
+plant_params = {
+    "type": "Sunflower",
+    "min_lifespan": 3,
+    "max_lifespan": 6,
+    "min_resilience": 0.5,
+    "max_resilience": 1.0,
+    "min_growth_rate": 0.1,
+    "max_growth_rate": 0.3,
+    "min_reproduction_rate": 0.05,
+    "max_reproduction_rate": 0.2
+}
 
-# Get neighbor coordinates of the element at (1, 1)
-neighbor_coords = get_neighbor_coordinates(arr, 1, 1)
-print(neighbor_coords)
+# Random location on a 2D grid (example)
+location = (4,4)
 
+# Create a plant instance
+new_plant = Plant(location, plant_params)
 
-print(np.eye(10,Plant))
+params = {"plants": [new_plant]}
+print(params.get("plants")[0].type)
+# Example output to show its properties
+desert = Ecosystem(5, params)
+
+desert.animate(10)

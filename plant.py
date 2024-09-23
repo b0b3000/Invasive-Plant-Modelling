@@ -1,6 +1,5 @@
 import numpy as np
 from numpy import random
-from ecosystem import Ecosystem
 
 class Plant:
 
@@ -38,14 +37,26 @@ class Plant:
 
     def step(self):
         #PLACEHOLDER
+        self.age += 1
+        self.size = self.age % 2
+        print(f"Current age: {self.age}")
         return 0
     
-    def reproduce(self, ecosystem: Ecosystem):
+    def reproduce(self, ecosystem):
         # return a list of plants of the same type to be input into the eco
-        offspring = list[Plant]
         empty_neighbours = ecosystem.get_empty_cells(self)
-        for i in range(random.randint(1,len(empty_neighbours))):
+        print(ecosystem.array)
+        print(ecosystem.occupied)
+        print(f"Getting empty neighbours for {self.loc[0]}:{self.loc[1]}...")
+        print(empty_neighbours)
+        if(len(empty_neighbours) == 0):
+            return []
+        offspring = []
+        for i in range(random.randint(0,len(empty_neighbours))):
             # generate a new agent
             temp_plant = Plant(empty_neighbours[i], self.genes)
             offspring.append(temp_plant)
         return offspring
+    
+    def is_old(self):
+        return self.age > self.lifespan
