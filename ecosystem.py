@@ -5,75 +5,35 @@ import matplotlib.pyplot as plt
 
 from plant import Plant
 
-def make_locs(n, m):
-    """Makes array where each row is an index in an `n` by `m` grid.
-
-    n: int number of rows
-    m: int number of cols
-
-    returns: NumPy array
-    """
-    t = [(i, j) for i in range(n) for j in range(m)]
-    return np.array(t)
 
 class Ecosystem(Cell2D):
-    """Represents an ecosystem."""
+    """Represents a given ecoystem."""
 
     def __init__(self, n: int, **params: dict):
         """Initializes the attributes.
-
         n: number of rows and columns
         params: dictionary of parameters
         """
+
         self.n = n
         self.params = params
+        self.agents = {}
 
-        # make the capacity array
-        self.capacity = self.make_capacity()
+        self.array = np.array(n,n)
 
-        # initially all cells are at capacity
-        self.array = self.capacity.copy()
+    def make_agents(self, agents: dict[Plant, str]):
+        """Populate the ecoystem with flora."""
+        for current_agent in agents:
+            self.agents.update({current_agent.loc: current_agent})
 
-        # make the agents
-        self.make_agents()
-
-    def make_capacity(self):
-        """Makes the capacity array."""
-
+    def add_agent(self, agent: Plant):
+        """Add a given agent to the ecosystem"""
+        self.agents.update({agent.loc: agent})
         return 0
 
-    def make_agents(self):
-        """Makes the agents."""
-
-        # determine where the agents start and generate locations
-        n, m = self.params.get('starting_box', self.array.shape)
-        locs = make_locs(n, m) # return the locations of each cell in a grid by indices of row and column
-        np.random.shuffle(locs)
-
-        # make the agents
-        num_agents = self.params.get('num_agents', 400)
-        assert(num_agents <= len(locs))
-        # make a list of agents, with each has its own associated attributes: sugar, vision, metabolism etc.
-        self.agents = [Plant(locs[i], self.params)
-                       for i in range(num_agents)]
-
-        # keep track of which cells are occupied
-        self.occupied = set(agent.loc for agent in self.agents)
-
-    def grow(self):
-        """Adds sugar to all cells and caps them by capacity."""
-        grow_rate = self.params.get('grow_rate', 1)
-        self.array = np.minimum(self.array + grow_rate, self.capacity) # the total sugar in each cell is bounded by its capacity
-
-    def look_and_move(self, center, vision):
-        """Finds the visible cell with the most sugar.
-
-        center: tuple, coordinates of the center cell
-        vision: int, maximum visible distance
-
-        returns: tuple, coordinates of best cell
-        """
-        # find all visible cells
+    def reproduce(self):
+        """Go throug all plants, and check if any can reproduce"""
+        return 0
 
     def step(self):
         """Executes one time step."""
