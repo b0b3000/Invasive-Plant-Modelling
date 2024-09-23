@@ -19,7 +19,7 @@ class Ecosystem(Cell2D):
         self.params = params
         self.agents = list(params.get("plants"))
         self.occupied = [agent.loc for agent in self.agents]
-
+        self.competition_constant = params.get("competition_constant")
         self.array = np.zeros((n,n))
 
     def make_agents(self, agents: dict[Plant, str]):
@@ -33,6 +33,7 @@ class Ecosystem(Cell2D):
 
     def add_plant(self, agent: Plant):
         """Add a given plant to the ecosystem"""
+
         self.agents.append(agent)
         self.occupied.append(agent.loc)
     
@@ -41,8 +42,7 @@ class Ecosystem(Cell2D):
         self.agents.remove(agent)
         self.occupied.remove(agent.loc)
 
-    def get_empty_cells(self, agent: Plant):
-        # Define the range for rows and columns, ensuring the indices don't go out of bounds
+    def get_neighbours(self, agent: Plant):
         loc_row = agent.loc[0]
         loc_column = agent.loc[1]
 
@@ -51,21 +51,51 @@ class Ecosystem(Cell2D):
         
         col_start = max(0, loc_column-1)
         col_end = min(self.array.shape[1], loc_column+2)
-        
-        # Collect the neighboring coordinates
-        neighbors = []
-        print(f"Occupied: \n {self.occupied}")
+
+        neighbours = []
         for row in range(row_start, row_end):
             for col in range(col_start, col_end):
                 # Exclude the current plant itself
-                if row == loc_row and col == loc_column:
-                    continue
-                # Check if coords are in occup
-                if (row,col) not in self.occupied:
-                    # We have an empty cell!
-                        neighbors.append((row,col))
-        print(f'Empty cell indexes are \n {neighbors}')
-        return neighbors
+                if not (row == loc_row and col == loc_column):
+                    neighbours.append((row,col))
+         
+        return neighbours
+
+    def get_empty_neighbours(self, agent: Plant):
+        # Define the range for rows and columns, ensuring the indices don't go out of bounds
+
+        neighbours = self.get_neighbours(agent)
+        empty_neighbours = []
+
+        for neighbour in neighbours:
+            if not (neighbour in self.occupied):
+                empty_neighbours.append(neighbour)
+
+        return empty_neighbours
+    
+    def get_occupied_neighbours_agents(self, agent: Plant):
+        neighbours = self.get_neighbours(agent)
+        occupied_neighbours = []
+
+        for neighbour in neighbours:
+            if (neighbour in self.occupied):
+                for each_agent in self.agents:
+                    if each_agent.loc == neighbour:
+                        occupied_neighbours.append(each_agent)
+        return occupied_neighbours
+    
+    def check_competition(self, agent: Plant):
+        occupied_neighbours = self.get_occupied_neighbours_agents(agent)
+        if not occupied_neighbours is None:
+            for neighbour in occupied_neighbours:
+                random_zero_to_one = random.random()
+                if random_zero_to_one < self.competition_constant:
+                    if agent.size + agent.resilience > neighbour.size + neighbour.resilience:
+                        self.remove_plant(neighbour)
+                    else:
+                        self.remove_plant(agent)
+                        return
+        
 
     def step(self):
         """Executes one time step."""
@@ -73,24 +103,21 @@ class Ecosystem(Cell2D):
         # loop through the agents in random order
         random_order = np.random.permutation(self.agents)
         for agent in random_order:
+            if agent in self.agents: #might have been removed midway
+                agent.step()
 
-            # execute one step that updates the agent's new location and sugar level
-            agent.step()
+                # If the agent plant is too old, remove from the ecosystem
+                if agent.is_old():
+                    self.remove_plant(agent)
 
+                else:
+                    # Generate plant(s) next to the current one
+                    offspring = agent.reproduce(self)
+                    if len(offspring) != 0:
+                        for new_plant in offspring:
+                            self.add_plant(new_plant)
 
-            # If the agent plant is too old, remove from the ecosystem
-            if agent.is_old():
-                self.remove_plant(agent)
-
-            else:
-                # Calculate where it can reproduce
-                empty_cells = self.get_empty_cells(agent)
-                # Generate a plant next to the current one
-                offspring = agent.reproduce(self)
-                if len(offspring) != 0:
-                    """ TODO: determine whether it should grow more than once at a time"""
-                    for new_plant in offspring:
-                        self.add_plant(new_plant)
+                    self.check_competition(agent)
 
         return len(self.agents)
 
@@ -112,8 +139,6 @@ class Ecosystem(Cell2D):
 
         # Reset the array to zero for the next step
         self.array.fill(0)
-
-    
 
     def get_coords(self):
         """Gets the coordinates of the agents.

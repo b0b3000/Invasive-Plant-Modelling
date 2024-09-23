@@ -12,7 +12,7 @@ plant_params = {
     "min_growth_rate": 0.1,
     "max_growth_rate": 0.3,
     "min_reproduction_rate": 0.05,
-    "max_reproduction_rate": 0.2
+    "max_reproduction_rate": 0.4
 }
 
 # Random location on a 2D grid (example)
@@ -21,7 +21,7 @@ location = (4,4)
 # Create a plant instance
 new_plant = Plant(location, plant_params)
 
-params = {"plants": [new_plant]}
+params = {"plants": [new_plant], "competition_constant": 0.2}
 # Example output to show its properties
 desert = Ecosystem(50, params)
 

@@ -33,21 +33,23 @@ class Plant:
     def step(self):
         #PLACEHOLDER
         self.age += 1
-        self.size = self.age % 2
-        print(f"Current age: {self.age}")
+        self.size = self.size + self.growth_rate
         return 0
     
     def reproduce(self, ecosystem):
         # return a list of plants of the same type to be input into the eco
-        empty_neighbours = ecosystem.get_empty_cells(self)
+        empty_neighbours = ecosystem.get_empty_neighbours(self)
         if(len(empty_neighbours) == 0):
             return []
         offspring = []
-        for i in range(random.randint(0,len(empty_neighbours))):
-            # generate a new agent
-            temp_plant = Plant(empty_neighbours[i], self.genes)
-            offspring.append(temp_plant)
+        for empty_neighbour in empty_neighbours:
+            random_zero_to_one = random.random()
+            if random_zero_to_one < self.reproduction_rate:
+                # generate a new agent
+                temp_plant = Plant(empty_neighbour, self.genes)
+                offspring.append(temp_plant)
         return offspring
     
     def is_old(self):
-        return self.age > self.lifespan
+        return self.age >= self.lifespan
+    
