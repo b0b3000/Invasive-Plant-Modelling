@@ -2,45 +2,33 @@ import numpy as np
 
 class Plant:
 
-    def __init__(self, loc, params):
-        """Creates a new agent at the given location.
+    def __init__(self, location, params):
+        """
+        Creates a new plant at the given location.
 
-        loc: tuple coordinates
+        location: tuple coordinates
         params: dictionary of parameters
+
+        loc: (x,y) location on grid of object
+        age: number of steps plant has been alive, incremented each step
+        size: 'vertical height' of plant (used to determine survival when fighting for resources)
+        type: species of plant
+        lifespan: Age at which the plant will die
+        resilience: Constant used to determine survival when fighting for limited resources
+        growth_rate: The amount in which size will be increased by every step
+        reproduction_rate: For any of the 8 neighbours, if unoccupied, the chance that a new plant of the same type will appear 
+
         """
-        self.loc = tuple(loc)
+
+        self.loc = tuple(location)
         self.age = 0
+        self.size = 0
+        self.type = params["type"]
+        self.lifespan = int(np.random.uniform(params["min_lifespan"], params["max_lifespan"]))
+        self.resilience = np.random.uniform(params["min_resilience"], params["max_resilience"])
+        self.growth_rate = np.random.uniform(params["min_growth_rate"], params["max_growth_rate"])
+        self.reproduction_rate = np.random.uniform(params["min_reproduction_rate"], params["max_reproduction_rate"])
 
-        # extract the parameters
-        max_vision = params.get('max_vision', 6)
-        max_metabolism = params.get('max_metabolism', 4)
-        min_lifespan = params.get('min_lifespan', 10000)
-        max_lifespan = params.get('max_lifespan', 10000)
-        min_sugar = params.get('min_sugar', 5)
-        max_sugar = params.get('max_sugar', 25)
 
-        # choose attributes: randomly choose
-        self.vision = np.random.randint(1, max_vision+1)
-        self.metabolism = np.random.uniform(1, max_metabolism)
-        self.lifespan = np.random.uniform(min_lifespan, max_lifespan)
-        self.sugar = np.random.uniform(min_sugar, max_sugar)
-
-    def step(self, env):
-        """Look around, move, and harvest.
-
-        env: Sugarscape object
-        """
-        # returns the agent’s new location, which is the visible cell with the most sugar.
-        self.loc = env.look_and_move(self.loc, self.vision)
-        # takes the (new) location of the agent, and removes and returns the sugar at that location.
-        # update the sugar of this agent after adding up the harvested sugar and minus the metabolism
-        self.sugar += env.harvest(self.loc) - self.metabolism
-        self.age += 1
-
-    def is_starving(self):
-        """Checks if sugar has gone negative."""
-        return self.sugar < 0
-
-    def is_old(self):
-        """Checks if lifespan is exceeded."""
-        return self.age > self.lifespan
+    def step(self):
+        #PLACEHOLDER
