@@ -2,6 +2,7 @@ from Cell2D import Cell2D, draw_array
 import numpy as np
 import matplotlib.pyplot as plt
 from numpy import random
+from matplotlib.colors import ListedColormap, BoundaryNorm
 
 from plant import Plant
 
@@ -20,7 +21,9 @@ class Ecosystem(Cell2D):
         self.agents = list(params.get("plants"))
         self.occupied = [agent.loc for agent in self.agents]
         self.competition_constant = params.get("competition_constant")
+        self.flora_types = params.get("flora_types")
         self.array = np.zeros((n,n))
+        self.just_died = [] #Use this list to ensure entities are not replaced in squares where they just died, and each round is an actual round
 
     def make_agents(self, agents: dict[Plant, str]):
         """
@@ -33,14 +36,17 @@ class Ecosystem(Cell2D):
 
     def add_plant(self, agent: Plant):
         """Add a given plant to the ecosystem"""
-
-        self.agents.append(agent)
-        self.occupied.append(agent.loc)
+        if not agent.loc in self.just_died:
+            self.agents.append(agent)
+            self.occupied.append(agent.loc)
+        else:
+            print(f"Cant add at {agent.loc}, someone just died")
     
     def remove_plant(self, agent: Plant):
         """ Remove a plant from the ecosystem"""
         self.agents.remove(agent)
         self.occupied.remove(agent.loc)
+        self.just_died.append(agent.loc)
 
     def get_neighbours(self, agent: Plant):
         loc_row = agent.loc[0]
@@ -91,14 +97,19 @@ class Ecosystem(Cell2D):
                 random_zero_to_one = random.random()
                 if random_zero_to_one < self.competition_constant:
                     if agent.size + agent.resilience > neighbour.size + neighbour.resilience:
+                        #self.array[neighbour.loc] = 3 #Death colour (TEMP)  (should be red)
                         self.remove_plant(neighbour)
                     else:
+                        #self.array[agent.loc] = 3 #Death colour (TEMP)  (should be red)
                         self.remove_plant(agent)
                         return
         
 
     def step(self):
         """Executes one time step."""
+
+        self.just_died = [] #Reset this each step
+
 
         # loop through the agents in random order
         random_order = np.random.permutation(self.agents)
@@ -108,16 +119,20 @@ class Ecosystem(Cell2D):
 
                 # If the agent plant is too old, remove from the ecosystem
                 if agent.is_old():
+                    #self.array[agent.loc] = 3 #Death colour (TEMP) (should be red)
                     self.remove_plant(agent)
+                    
 
                 else:
                     # Generate plant(s) next to the current one
+                    self.check_competition(agent)
+
                     offspring = agent.reproduce(self)
                     if len(offspring) != 0:
                         for new_plant in offspring:
                             self.add_plant(new_plant)
 
-                    self.check_competition(agent)
+                    
 
         return len(self.agents)
 
@@ -125,13 +140,21 @@ class Ecosystem(Cell2D):
         """Draws the ecosystem as a cellular automata grid."""
         # Clear the previous figure
         plt.clf()
-
+        
+        cmap = ListedColormap(['white', 'green', 'blue', 'red'])
+        norm = BoundaryNorm([0, 1, 2, 3, 4], cmap.N)
+        print(self.flora_types)
         # Update the array based on the positions of the agents
         for agent in self.agents:
-            self.array[agent.loc] = 1  # You can use different values for different states or types
+            if agent.type == self.flora_types[0]:
+                self.array[agent.loc] = 1  # Maps green
+
+            elif agent.type == self.flora_types[1]:
+                self.array[agent.loc] = 2 # Maps blue
+
 
         # Draw the ecosystem grid
-        plt.imshow(self.array, cmap='YlOrRd', vmin=0, vmax=1, origin='lower')
+        plt.imshow(self.array, cmap=cmap, norm=norm, origin='lower')
         plt.gca().axes.get_xaxis().set_visible(False)  # Hide x-axis
         plt.gca().axes.get_yaxis().set_visible(False)   
         plt.title('Ecosystem Cellular Automata Visualization')
