@@ -1,7 +1,3 @@
-from ecosystem import Ecosystem
-from plant import Plant
-
-
 # Example parameters for the plant
 plant_1_params = {
     "type": "Sunflower",
@@ -27,18 +23,21 @@ plant_2_params = {
     "max_reproduction_rate": 0.4
 }
 
-# Random location on a 2D grid (example)
-location = (4,4)
+layout_1 = [
+    (10,10),
+    (13,13),
+    (13,15),
+    (15,13),
+    (15,15),
+    (16,16),
+    (11,17),
+    (17,13),
+    (10,15)
+]
 
-# Create plant instances
-plants = []
-plants.append(Plant((4,4), plant_1_params))
-plants.append(Plant((10,10), plant_2_params))
-
-flora_types = [plant.type for plant in plants]
-
-params = {"plants": plants, "competition_constant": 0.1, "flora_types":flora_types}
-# Example output to show its properties
-desert = Ecosystem(50, params)
-
-desert.animate(20)
+layout_2 = [
+    (1,1),
+    (3,3),
+    (5,5), 
+    (7,7)
+]
